@@ -1,0 +1,9 @@
+*~
+*.py[co]
+bin
+MANIFEST
+.tox/
+__pycache__/
+dist/
+build/
+
