@@ -1,4 +1,4 @@
-"""Git-related utilities."""
+"""Git-related library."""
 
 __version__ = "0.1"
 __author__ = "Original Coding"
