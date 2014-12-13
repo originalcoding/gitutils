@@ -9,44 +9,56 @@ class VersionGetterTest(unittest.TestCase):
     def setUp(self):
         from gitutils import get_head_hash
         self.fn = get_head_hash
+
         self.short = "6339b2b"
         self.long = "6339b2b6509a3ee8fbf6eed9f1741bfd6ac3030f"
-        self.root = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "tests_files/",
-            )
-        )
 
-        self.git_dir = os.path.join(self.root, ".git/")
+        self.arch_path = self.make_path("tests_files/.git.zip")
 
-        if not os.path.exists(self.git_dir):
-            with zipfile.ZipFile(os.path.join(self.root, ".git.zip")) as a:
-                a.extractall(self.root)
+        self._to_rm = []
 
     def tearDown(self):
-        if os.path.exists(self.git_dir):
-            shutil.rmtree(self.git_dir)
+        for path in self._to_rm:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+
+    def remove_dir_on_tear_down(self, path):
+        self._to_rm.append(path)
+
+    def add_git_dir_to(self, root):
+        git_dir = os.path.join(root, ".git/")
+        self.remove_dir_on_tear_down(git_dir)
+        if not os.path.exists(git_dir):
+            with zipfile.ZipFile(self.arch_path) as a:
+                a.extractall(root)
+        return git_dir
+
+    def make_path(self, dirname):
+        return os.path.abspath(
+            os.path.join(os.path.dirname(__file__), dirname)
+        )
+
+    def check(self, root, asserter):
+        asserter(self.fn(root, short=True), self.short)
+        asserter(self.fn(root, short=False), self.long)
 
     def test_existing(self):
-        short, long = (
-            self.fn(self.root, short=True),
-            self.fn(self.root, short=False),
-        )
-        self.assertEqual(short, self.short)
-        self.assertEqual(long, self.long)
+        root = self.make_path("tests_files")
+        self.add_git_dir_to(root)
+        self.check(root, self.assertEqual)
 
     def test_non_existing(self):
-        ne = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "ne/",
-            )
-        )
-        self.assertIsNone(self.fn(ne, short=True))
-        self.assertIsNone(self.fn(ne, short=False))
+        root = self.make_path("ne")
+        self.check(root, self.assertIsNone)
+
+    def test_root_with_quote(self):
+        root = self.make_path("r'oot_dir")
+        if not os.path.exists(root):
+            os.mkdir(root)
+        self.remove_dir_on_tear_down(root)
+        self.add_git_dir_to(root)
+        self.check(root, self.assertEqual)
 
 
 if __name__ == "__main__":
     unittest.main()
-
